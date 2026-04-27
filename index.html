@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Калькулятор чаевых</title>
+    <style>
+        :root {
+            --bg: #020817; --card: #0a1128; --neon-blue: #00b4d8; --neon-light: #48cae4;
+            --neon-gold: #ffd60a; --text: #c8d6e5; --muted: #7b8aa6; --input-bg: #0d1530;
+            --border: #1a2540; --result-bg: #0a1028;
+        }
+        body.light {
+            --bg: #f0f4f8; --card: #fff; --neon-blue: #0077b6; --neon-light: #0096c7;
+            --neon-gold: #e5a100; --text: #1a1a2e; --muted: #5a6a7e; --input-bg: #f5f7fa;
+            --border: #d1d9e6; --result-bg: #f8fafc;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family:'Segoe UI',sans-serif; background:var(--bg); min-height:100vh;
+            padding:20px; color:var(--text); display:flex; justify-content:center; align-items:center;
+        }
+        body:not(.light) { background-image:radial-gradient(ellipse at 50% 0%,#0d1a3a 0%,transparent 50%); }
+        body.light { background-image:radial-gradient(ellipse at 50% 0%,#dce8f5 0%,transparent 50%); }
+        .calc {
+            background:var(--card); border-radius:28px; padding:28px 24px; width:100%;
+            max-width:480px; box-shadow:0 25px 60px rgba(0,0,0,0.6); border:1px solid var(--border);
+        }
+        .top-bar { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; gap:8px; }
+        .lang-btns { display:flex; gap:4px; background:var(--input-bg); border-radius:30px; padding:4px; border:1px solid var(--border); }
+        .lang-btn {
+            padding:8px 14px; border-radius:26px; border:none; background:transparent;
+            color:var(--muted); font-weight:600; font-size:0.8rem; cursor:pointer; transition:all 0.3s;
+        }
+        .lang-btn.active { background:var(--neon-blue); color:#020817; font-weight:700; }
+        .lang-btn:hover:not(.active) { color:var(--text); }
+        .theme-btn {
+            background:var(--input-bg); border:2px solid var(--border); border-radius:50%;
+            width:40px; height:40px; font-size:1.3rem; cursor:pointer; display:flex;
+            align-items:center; justify-content:center; color:var(--text); transition:all 0.3s;
+        }
+        .theme-btn:hover { border-color:var(--neon-blue); }
+        .currency-row {
+            display:flex; align-items:center; gap:10px; margin-bottom:16px;
+            background:var(--result-bg); padding:10px 14px; border-radius:16px; flex-wrap:wrap; border:1px solid var(--border);
+        }
+        .currency-row span { font-size:0.75rem; font-weight:600; color:var(--muted); }
+        .currency-btns { display:flex; gap:6px; }
+        .cur-btn {
+            padding:7px 14px; border-radius:20px; border:2px solid var(--border);
+            background:var(--input-bg); color:var(--text); font-weight:700; font-size:0.78rem; cursor:pointer; transition:all 0.3s;
+        }
+        .cur-btn.active { border-color:var(--neon-gold); background:var(--neon-gold); color:#020817; }
+        .cur-btn:hover:not(.active) { border-color:var(--neon-blue); }
+        .rate-info { font-size:0.68rem; color:var(--muted); margin-left:auto; }
+        h1 { font-size:1.6rem; text-align:center; margin-bottom:2px; font-weight:700; color:var(--neon-blue); }
+        .subtitle { text-align:center; color:var(--muted); font-size:0.82rem; margin-bottom:18px; }
+        .tabs { display:flex; gap:4px; margin-bottom:16px; background:var(--input-bg); border-radius:16px; padding:5px; border:1px solid var(--border); }
+        .tab-btn {
+            flex:1; padding:11px 10px; border:none; background:transparent; color:var(--muted);
+            font-weight:600; font-size:0.8rem; border-radius:12px; cursor:pointer; transition:all 0.3s;
+        }
+        .tab-btn.active { background:var(--neon-blue); color:#020817; font-weight:700; }
+        .tab-btn:hover:not(.active) { color:var(--text); }
+        .tab-content { display:none; }
+        .tab-content.active { display:block; }
+        .input-group { margin-bottom:16px; }
+        .input-group label {
+            display:block; font-size:0.75rem; font-weight:600; color:var(--muted);
+            margin-bottom:5px; text-transform:uppercase; letter-spacing:1.5px;
+        }
+        .input-wrap {
+            display:flex; align-items:center; background:var(--input-bg); border:2px solid var(--border);
+            border-radius:16px; overflow:hidden; transition:all 0.3s;
+        }
+        .input-wrap:focus-within { border-color:var(--neon-blue); }
+        .prefix { padding:0 14px; font-weight:700; color:var(--neon-blue); font-size:0.95rem; }
+        input[type="number"], input[type="text"] {
+            flex:1; background:transparent; border:none; outline:none; color:var(--text);
+            font-size:1.05rem; padding:12px 14px 12px 0; font-weight:500; min-width:0;
+        }
+        input::placeholder { color:#475569; }
+        .tip-row { margin-bottom:16px; }
+        .tip-label { display:flex; justify-content:space-between; margin-bottom:5px; }
+        .tip-label span { font-size:0.75rem; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:1.5px; }
+        .tip-btns { display:grid; grid-template-columns:repeat(4,1fr); gap:7px; }
+        .tip-btn {
+            background:var(--input-bg); border:2px solid var(--border); color:var(--text);
+            padding:10px 4px; border-radius:14px; font-size:0.88rem; font-weight:700; cursor:pointer; transition:all 0.3s;
+        }
+        .tip-btn:hover { border-color:var(--neon-blue); }
+        .tip-btn.active { background:var(--neon-blue); border-color:var(--neon-blue); color:#020817; }
+        .custom-input {
+            width:100%; background:var(--input-bg); border:2px solid var(--border);
+            color:var(--text); padding:10px 14px; border-radius:14px; font-size:0.95rem;
+            display:none; outline:none; margin-top:7px;
+        }
+        .custom-input.show { display:block; }
+        .custom-badge { font-size:0.72rem; color:var(--neon-blue); font-weight:600; display:none; }
+        .extras { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:14px; align-items:center; }
+        .checkbox-item { display:flex; align-items:center; gap:7px; cursor:pointer; font-size:0.8rem; color:var(--muted); }
+        .checkbox-item input { accent-color:var(--neon-blue); width:17px; height:17px; cursor:pointer; }
+        .small-input {
+            width:55px; background:var(--input-bg); border:2px solid var(--border);
+            color:var(--text); border-radius:10px; padding:5px 7px; font-size:0.78rem; display:none; text-align:center;
+        }
+        .divider { height:1px; background:linear-gradient(90deg,transparent,var(--border),transparent); margin:16px 0; }
+        .results {
+            background:var(--result-bg); border-radius:18px; padding:18px 14px;
+            display:grid; grid-template-columns:1fr 1fr; gap:12px; border:1px solid var(--border);
+        }
+        .result-item { text-align:center; }
+        .result-label { font-size:0.67rem; text-transform:uppercase; letter-spacing:2px; color:var(--muted); margin-bottom:4px; }
+        .result-value { font-size:1.5rem; font-weight:700; }
+        .result-item.high .result-value { color:var(--neon-gold); font-size:1.9rem; }
+        .chart-box { margin:16px 0; display:flex; align-items:center; justify-content:center; gap:18px; }
+        .chart-legend { font-size:0.72rem; display:flex; flex-direction:column; gap:6px; }
+        .legend-item { display:flex; align-items:center; gap:8px; }
+        .legend-dot { width:12px; height:12px; border-radius:50%; }
+        .receipt {
+            background:#fff; color:#1a1a2e; border-radius:18px; padding:22px 18px;
+            font-family:'Courier New',monospace; font-size:0.82rem; line-height:1.7;
+            max-width:310px; margin:16px auto; text-align:center; box-shadow:0 15px 40px rgba(0,0,0,0.5);
+        }
+        .receipt .rec-title { font-size:1.1rem; font-weight:700; }
+        .receipt .rec-dots { border-top:2px dashed #94a3b8; margin:10px 0; }
+        .receipt .rec-row { display:flex; justify-content:space-between; }
+        .receipt .rec-total { font-size:1.2rem; font-weight:700; margin-top:8px; border-top:2px solid #1a1a2e; padding-top:8px; }
+        .persons-list { display:flex; flex-direction:column; gap:9px; margin-bottom:14px; }
+        .person-item {
+            display:flex; align-items:center; gap:8px; background:var(--input-bg);
+            border:2px solid var(--border); border-radius:14px; padding:7px 12px;
+        }
+        .remove-btn { background:none; border:none; color:#ef4444; cursor:pointer; font-size:1.3rem; }
+        .add-btn {
+            width:100%; padding:12px; border:2px dashed var(--border); border-radius:14px;
+            background:transparent; color:var(--muted); cursor:pointer; font-weight:600; font-size:0.88rem;
+        }
+        .add-btn:hover { border-color:var(--neon-blue); color:var(--neon-blue); }
+        .person-summary { background:var(--result-bg); border-radius:14px; padding:14px; margin-top:10px; display:none; border:1px solid var(--border); }
+        .person-summary-item { display:flex; justify-content:space-between; padding:5px 0; font-size:0.82rem; border-bottom:1px solid var(--border); }
+        .person-summary-item:last-child { border-bottom:none; font-weight:700; color:var(--neon-gold); }
+        .btn-row { display:flex; gap:8px; margin-top:14px; }
+        .btn-sm {
+            flex:1; padding:12px 6px; border-radius:14px; font-size:0.78rem; font-weight:700;
+            cursor:pointer; border:2px solid var(--border); background:var(--input-bg); color:var(--text);
+            display:flex; align-items:center; justify-content:center; gap:5px; transition:all 0.3s; text-transform:uppercase;
+        }
+        .btn-sm:hover { border-color:var(--neon-blue); }
+        .btn-sm.copied { border-color:#22c55e!important; color:#22c55e!important; }
+        .history { margin-top:16px; background:var(--result-bg); border-radius:16px; padding:12px 14px; border:1px solid var(--border); }
+        .history h3 { font-size:0.75rem; text-align:center; color:var(--muted); margin-bottom:8px; text-transform:uppercase; }
+        .history-list { list-style:none; display:flex; flex-direction:column; gap:6px; max-height:130px; overflow-y:auto; }
+        .history-item { display:flex; justify-content:space-between; font-size:0.75rem; padding:8px 10px; background:var(--input-bg); border-radius:12px; }
+        .hi-desc { color:var(--muted); }
+        .hi-value { font-weight:700; color:var(--neon-gold); }
+    </style>
+</head>
+<body>
+<div class="calc">
+    <div class="top-bar">
+        <div class="lang-btns">
+            <button class="lang-btn active" data-lang="ru">🇷🇺 RU</button>
+            <button class="lang-btn" data-lang="uz">🇺🇿 UZ</button>
+            <button class="lang-btn" data-lang="en">🇺🇸 EN</button>
+        </div><button class="theme-btn" id="themeBtn">🌙</button>
+    </div>
+    <div class="currency-row">
+        <span>Валюта:</span>
+        <div class="currency-btns">
+            <button class="cur-btn" data-cur="RUB">₽ RUB</button>
+            <button class="cur-btn active" data-cur="UZS">so'm UZS</button>
+            <button class="cur-btn" data-cur="USD">$ USD</button>
+        </div><span class="rate-info" id="rateInfo">1 USD ≈ 12800 UZS</span>
+    </div>
+    <h1>💸 Счёт пополам</h1><p class="subtitle">Калькулятор чаевых</p>
+    <div class="tabs">
+        <button class="tab-btn active" data-tab="simple">Простой</button>
+        <button class="tab-btn" data-tab="names">Поимённо</button>
+    </div>
+    <div class="tab-content active" id="tab-simple">
+        <div class="input-group"><label>Сумма счёта</label><div class="input-wrap"><span class="prefix" id="curSym">so'm</span><input type="number" id="bill" placeholder="0" step="any"></div></div>
+        <div class="tip-row">
+            <div class="tip-label"><span>Чаевые</span><span class="custom-badge" id="badge1">Свой %</span></div>
+            <div class="tip-btns" id="tipBtns1">
+                <button class="tip-btn" data-tip="5">5%</button><button class="tip-btn active" data-tip="10">10%</button>
+                <button class="tip-btn" data-tip="15">15%</button><button class="tip-btn" data-tip="20">20%</button>
+                <button class="tip-btn" data-tip="25">25%</button><button class="tip-btn" data-tip="custom">Свой</button>
+            </div>
+            <input type="number" class="custom-input" id="custom1" placeholder="Свой %" step="any">
+        </div>
+        <div class="input-group"><label>На сколько человек?</label><div class="input-wrap"><span class="prefix">👤</span><input type="number" id="people" value="1" min="1" step="1"></div></div>
+        <div class="extras">
+            <label class="checkbox-item"><input type="checkbox" id="serv1"><span>+ Сервисный сбор (%)</span></label>
+            <input type="number" class="small-input" id="servPct1" value="10" min="0" step="any">
+            <label class="checkbox-item"><input type="checkbox" id="round1"><span>Округлять вверх</span></label>
+        </div>
+    </div>
+    <div class="tab-content" id="tab-names">
+        <div class="input-group"><label>Общая сумма</label><div class="input-wrap"><span class="prefix" id="curSym2">so'm</span><input type="number" id="bill2" placeholder="0" step="any"></div></div>
+        <div class="tip-row">
+            <div class="tip-label"><span>Чаевые</span><span class="custom-badge" id="badge2">Свой %</span></div>
+            <div class="tip-btns" id="tipBtns2">
+                <button class="tip-btn" data-tip="5">5%</button><button class="tip-btn active" data-tip="10">10%</button>
+                <button class="tip-btn" data-tip="15">15%</button><button class="tip-btn" data-tip="20">20%</button>
+                <button class="tip-btn" data-tip="25">25%</button><button class="tip-btn" data-tip="custom">Свой</button>
+            </div>
+            <input type="number" class="custom-input" id="custom2" placeholder="Свой %" step="any">
+        </div>
+        <label style="font-size:0.73rem;font-weight:600;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:6px;">Кто что заказал?</label>
+        <div class="persons-list" id="personsList">
+            <div class="person-item"><input type="text" class="pname" placeholder="Имя"><input type="number" class="pamount" placeholder="Сумма" step="any"><button class="remove-btn">✕</button></div>
+            <div class="person-item"><input type="text" class="pname" placeholder="Имя"><input type="number" class="pamount" placeholder="Сумма" step="any"><button class="remove-btn">✕</button></div>
+        </div>
+        <button class="add-btn" id="addPerson">+ Добавить человека</button>
+        <div class="extras" style="margin-top:10px;">
+            <label class="checkbox-item"><input type="checkbox" id="serv2"><span>+ Сервисный сбор (%)</span></label>
+            <input type="number" class="small-input" id="servPct2" value="10" min="0" step="any">
+            <label class="checkbox-item"><input type="checkbox" id="round2"><span>Округлять вверх</span></label>
+        </div>
+        <div class="person-summary" id="personSummary"></div>
+    </div>
+    <div class="divider"></div>
+    <div class="results" id="resultsBox">
+        <div class="result-item"><div class="result-label">Чаевые</div><div class="result-value" id="tipVal">0</div></div>
+        <div class="result-item"><div class="result-label">Общий счёт</div><div class="result-value" id="totalVal">0</div></div>
+        <div class="result-item high" style="grid-column:span 2;"><div class="result-label">Каждый платит</div><div class="result-value" id="perVal">0</div></div>
+    </div>
+    <div class="chart-box" id="chartBox"><canvas id="pieChart" width="120" height="120"></canvas><div class="chart-legend" id="chartLegend"></div></div>
+    <div class="receipt" id="receiptBox" style="display:none;"></div>
+    <div class="btn-row">
+        <button class="btn-sm" id="voiceBtn">🔊 Озвучить</button>
+        <button class="btn-sm" id="shareBtn">📋 Поделиться</button>
+        <button class="btn-sm" id="receiptBtn">🧾 Чек</button>
+        <button class="btn-sm" id="resetBtn">🔄 Сбросить</button>
+    </div>
+    <div class="history"><h3>Последние расчёты</h3><ul class="history-list" id="historyList"><li style="text-align:center;color:var(--muted);opacity:0.7;">Пока пусто</li></ul></div>
+</div><script>
+const L = {
+  ru: { title:'💸 Счёт пополам', sub:'Калькулятор чаевых и делёжки', cur:'Валюта:', t1:'Простой', t2:'Поимённо',
+    b1:'Сумма счёта', tip:'Чаевые', cbad:'Свой %', cbtn:'Свой', ppl:'На сколько человек?',
+    sf:'+ Сервисный сбор (%)', ru:'Округлять вверх', b2:'Общая сумма счёта', nl:'Кто что заказал?',
+    add:'+ Добавить человека', tipV:'Чаевые', tot:'Общий счёт', pp:'Каждый платит',
+    vc:'🔊 Озвучить', sh:'📋 Поделиться', rc:'🧾 Чек', rst:'🔄 Сбросить',
+    hist:'Последние расчёты', noh:'Пока пусто', cpd:'✅ Скопировано!',
+    rtitle:'ЧЕК', thx:'Спасибо за заказ!', rtot:'ИТОГО на человека', tp:'Всего человек',
+    lb:'Счёт', lt:'Чаевые', ls:'Сервис',
+    ri_uzs:'1 USD ≈ 12800 UZS | 1 RUB ≈ 148 UZS', ri_rub:'1 USD ≈ 86 RUB | 1 UZS ≈ 0.0068 RUB',
+    ri_usd:'1 UZS ≈ 0.000078 USD | 1 RUB ≈ 0.012 USD', pn:'Имя', pa:'Сумма', pc:'Свой %' },
+  uz: { title:'💸 Hisob teng', sub:"Choychaqa va bo'lish kalkulyatori", cur:'Valyuta:', t1:'Oddiy', t2:"Ism bo'yicha",
+    b1:'Hisob summasi', tip:'Choychaqa', cbad:"O'z %", cbtn:'Boshqa', ppl:'Necha kishiga?',
+    sf:"+ Xizmat to'lovi (%)", ru:'Yuqoriga yaxlitlash', b2:'Umumiy hisob summasi', nl:'Kim nima buyurtma qildi?',
+    add:"+ Odam qo'shish", tipV:'Choychaqa', tot:'Umumiy hisob', pp:"Har biri to'laydi",
+    vc:'🔊 Ovoz', sh:'📋 Ulashish', rc:'🧾 Chek', rst:'🔄 Tozalash',
+    hist:"So'nggi hisoblar", noh:"Hozircha bo'sh", cpd:'✅ Nusxalandi!',
+    rtitle:'CHEK', thx:'Buyurtma uchun rahmat!', rtot:'JAMI kishi boshiga', tp:'Jami odam',
+    lb:'Hisob', lt:'Choychaqa', ls:'Xizmat',
+    ri_uzs:'1 USD ≈ 12800 UZS | 1 RUB ≈ 148 UZS', ri_rub:'1 USD ≈ 86 RUB | 1 UZS ≈ 0.0068 RUB',
+    ri_usd:'1 UZS ≈ 0.000078 USD | 1 RUB ≈ 0.012 USD', pn:'Ism', pa:'Summa', pc:"O'z %" },
+  en: { title:'💸 Split Bill', sub:'Tip & Split Calculator', cur:'Currency:', t1:'Simple', t2:'By Names',
+    b1:'Bill Amount', tip:'Tip', cbad:'Custom %', cbtn:'Custom', ppl:'How many people?',
+    sf:'+ Service charge (%)', ru:'Round up', b2:'Total Bill Amount', nl:'Who ordered what?',
+    add:'+ Add person', tipV:'Tip', tot:'Total Bill', pp:'Each pays',
+    vc:'🔊 Speak', sh:'📋 Share', rc:'🧾 Receipt', rst:'🔄 Reset',
+    hist:'Recent calculations', noh:'Empty yet', cpd:'✅ Copied!',
+    rtitle:'RECEIPT', thx:'Thank you!', rtot:'TOTAL per person', tp:'Total people',
+    lb:'Bill', lt:'Tip', ls:'Service',
+    ri_uzs:'1 USD ≈ 12,800 UZS', ri_rub:'1 USD ≈ 86 RUB', ri_usd:'1 UZS ≈ 0.000078 USD',
+    pn:'Name', pa:'Amount', pc:'Custom %' }
+};
+const C = { UZS:{s:"so'm",r:1}, RUB:{s:'₽',r:12800/148}, USD:{s:'$',r:12800} };
+let cur='UZS', t1=10, t2p=10, c1=false, c2=false, cl='ru';
+const $ = id => document.getElementById(id);
+const fmt = v => isNaN(v)||!isFinite(v) ? '0 '+C[cur].s : Math.round(v).toLocaleString('ru-RU')+' '+C[cur].s;
+const at = () => document.querySelector('.tab-content.active').id==='tab-simple'?'simple':'names';
+
+function tr(l) {
+  cl=l;
+  document.querySelector('h1').textContent = L[l].title;
+  document.querySelector('.subtitle').textContent = L[l].sub;
+  document.querySelector('.currency-row span').textContent = L[l].cur;
+  const tb = document.querySelectorAll('.tab-btn');
+  tb[0].textContent = L[l].t1; tb[1].textContent = L[l].t2;
+  document.querySelector('#tab-simple .input-group:nth-child(1) label').textContent = L[l].b1;
+  document.querySelector('#tipBtns1').previousElementSibling.querySelector('span:first-child').textContent = L[l].tip;
+  if(c1) $('badge1').textContent = L[l].cbad;
+  document.querySelector('#tipBtns1 .tip-btn[data-tip="custom"]').textContent = L[l].cbtn;
+  $('custom1').placeholder = L[l].pc;
+  document.querySelector('#tab-simple .input-group:nth-child(3) label').textContent = L[l].ppl;
+  document.querySelector('#tab-simple .extras .checkbox-item:nth-child(1) span').textContent = L[l].sf;
+  document.querySelector('#tab-simple .extras .checkbox-item:nth-child(3) span').textContent = L[l].ru;
+  document.querySelector('#tab-names .input-group label').textContent = L[l].b2;
+  document.querySelector('#tipBtns2').previousElementSibling.querySelector('span:first-child').textContent = L[l].tip;
+  if(c2) $('badge2').textContent = L[l].cbad;
+  document.querySelector('#tipBtns2 .tip-btn[data-tip="custom"]').textContent = L[l].cbtn;
+  $('custom2').placeholder = L[l].pc;
+  document.querySelector('#tab-names > label').textContent = L[l].nl;
+  $('addPerson').textContent = L[l].add;
+  document.querySelector('#tab-names .extras .checkbox-item:nth-child(1) span').textContent = L[l].sf;
+  document.querySelector('#tab-names .extras .checkbox-item:nth-child(3) span').textContent = L[l].ru;
+  document.querySelectorAll('.pname').forEach(i => i.placeholder = L[l].pn);
+  document.querySelectorAll('.pamount').forEach(i => i.placeholder = L[l].pa);
+  document.querySelector('#resultsBox .result-item:nth-child(1) .result-label').textContent = L[l].tipV;
+  document.querySelector('#resultsBox .result-item:nth-child(2) .result-label').textContent = L[l].tot;
+  document.querySelector('#resultsBox .result-item:nth-child(3) .result-label').textContent = L[l].pp;
+  $('voiceBtn').textContent = L[l].vc; $('shareBtn').textContent = L[l].sh;
+  $('receiptBtn').textContent = L[l].rc; $('resetBtn').textContent = L[l].rst;
+  document.querySelector('.history h3').textContent = L[l].hist;
+  const eh = document.querySelector('.history-list li[style]');
+  if(eh) eh.textContent = L[l].noh;
+  updateRate();
+  localStorage.setItem('tcLang', l);
+}
+
+function updateRate() {
+  if(cur==='UZS') $('rateInfo').textContent = L[cl].ri_uzs;
+  else if(cur==='RUB') $('rateInfo').textContent = L[cl].ri_rub;
+  else $('rateInfo').textContent = L[cl].ri_usd;
+}
+
+function calc1() {
+  const bill = parseFloat($('bill').value)||0;
+  let ppl = parseInt($('people').value)||1;
+  if(ppl<1) ppl=1;
+  let tip = bill*(t1/100), serv=0;
+  if($('serv1').checked) { serv = bill*((parseFloat($('servPct1').value)||0)/100); tip+=serv; }
+  let total = bill+tip, pp = total/ppl;
+  if($('round1').checked) { pp=Math.ceil(pp); total=pp*ppl; tip=total-bill; }
+  $('tipVal').textContent = fmt(tip);
+  $('totalVal').textContent = fmt(total);
+  $('perVal').textContent = fmt(pp);
+  const pv = $('perVal');
+  pv.dataset.t = Math.round(total); pv.dataset.tip = Math.round(tip);
+  pv.dataset.b = Math.round(bill); pv.dataset.s = Math.round(serv); pv.dataset.p = ppl;
+  chart(bill, tip-serv, serv);
+}
+
+function calc2() {
+  const bill = parseFloat($('bill2').value)||0;
+  const items = document.querySelectorAll('#personsList .person-item');
+  let ps=[], sum=0;
+  items.forEach(it => {
+    const n = it.querySelector('.pname').value||'?';
+    const a = parseFloat(it.querySelector('.pamount').value)||0;
+    ps.push({name:n,amount:a}); sum+=a;
+  });
+  if(!ps.length) return;
+  let tip = bill*(t2p/100), serv=0;
+  if($('serv2').checked) { serv = bill*((parseFloat($('servPct2').value)||0)/100); tip+=serv; }
+  if($('round2').checked) tip=Math.ceil(tip);
+  const grand = bill+tip;
+  let h = '';
+  ps.forEach(p => {
+    const share = sum>0 ? (p.amount/sum)*grand : grand/ps.length;
+    h += '<div class="person-summary-item"><span>'+p.name+'</span><span>'+fmt(share)+'</span></div>';
+  });
+  h += '<div class="person-summary-item"><span>'+L[cl].tp+'</span><span>'+ps.length+'</span></div>';
+  h += '<div class="person-summary-item"><span>'+L[cl].tot+'</span><span>'+fmt(grand)+'</span></div>';
+  $('personSummary').innerHTML = h;
+  $('personSummary').style.display = 'block';
+  const pv = $('perVal');
+  pv.dataset.t = Math.round(grand); pv.dataset.tip = Math.round(tip);
+  pv.dataset.b = Math.round(bill); pv.dataset.s = Math.round(serv); pv.dataset.p = ps.length;
+  chart(bill, tip-serv, serv);
+}
+
+function chart(bill, tip, serv) {
+  if(bill<=0&&tip<=0&&serv<=0) { $('chartBox').style.display='none'; return; }
+  $('chartBox').style.display='flex';
+  const ctx = $('pieChart').getContext('2d');
+  ctx.clearRect(0,0,120,120);
+  const total = bill+tip+serv;
+  let start = -Math.PI/2;
+  const segs = [
+    {v:bill,c:'#00b4d8',n:L[cl].lb},
+    {v:tip,c:'#ffd60a',n:L[cl].lt},
+    {v:serv,c:'#48cae4',n:L[cl].ls}
+  ];
+  segs.forEach(s => {
+    if(s.v<=0) return;
+    const angle = (s.v/total)*2*Math.PI;
+    ctx.beginPath(); ctx.moveTo(60,60); ctx.arc(60,60,50,start,start+angle); ctx.closePath();
+    ctx.fillStyle = s.c; ctx.fill(); start+=angle;
+  });
+  $('chartLegend').innerHTML = segs.filter(s=>s.v>0).map(s=>'<div class="legend-item"><span class="legend-dot" style="background:'+s.c+'"></span>'+s.n+': '+fmt(s.v)+'</div>').join('');
+}
+
+function receipt() {
+  const pv = $('perVal');
+  const t = pv.dataset.t||'0', tip = pv.dataset.tip||'0', b = pv.dataset.b||'0', ppl = pv.dataset.p||'1';
+  const pp = Math.round(parseInt(t)/parseInt(ppl))||'0';
+  let h = '<div class="rec-title">'+L[cl].rtitle+'</div><div>'+new Date().toLocaleDateString()+'</div><div class="rec-dots"></div>';
+  h += '<div class="rec-row"><span>'+L[cl].lb+':</span><span>'+fmt(b)+'</span></div>';
+  h += '<div class="rec-row"><span>'+L[cl].lt+':</span><span>'+fmt(tip)+'</span></div>';
+  h += '<div class="rec-total">'+L[cl].rtot+': '+fmt(pp)+'</div>';
+  h += '<div style="margin-top:10px;font-style:italic;">'+L[cl].thx+'</div>';
+  $('receiptBox').innerHTML = h;
+  $('receiptBox').style.display = 'block';
+  $('receiptBox').scrollIntoView({behavior:'smooth'});
+}
+
+function speak() {
+  const pv = $('perVal');
+  const t = pv.dataset.t||'0', tip = pv.dataset.tip||'0', ppl = pv.dataset.p||'1';
+  const pp = Math.round(parseInt(t)/parseInt(ppl))||'0';
+  let txt = '';
+  if(cl==='ru') txt = 'Общий счёт '+t+' '+C[cur].s+'. Чаевые '+tip+'. Каждый платит '+pp+' '+C[cur].s+'.';
+  else if(cl==='uz') txt = 'Umumiy hisob '+t+' '+C[cur].s+'. Choychaqa '+tip+'. Har biri '+pp+' '+C[cur].s+' to\'laydi.';
+  else txt = 'Total bill '+t+' '+C[cur].s+'. Tip '+tip+'. Each pays '+pp+' '+C[cur].s+'.';
+  if('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(txt);
+    u.lang = cl==='ru'?'ru-RU':cl==='uz'?'uz-UZ':'en-US';
+    u.rate = 0.9;
+    window.speechSynthesis.speak(u);
+  } else alert(txt);
+}
+
+function switchCur(c) {
+  const oldR = C[cur].r, newR = C[c].r;
+  ['bill','bill2'].forEach(id => {
+    const v = parseFloat($(id).value)||0;
+    $(id).value = v>0 ? Math.round(v*(oldR/newR)) : '';
+  });
+  document.querySelectorAll('.pamount').forEach(inp => {
+    const v = parseFloat(inp.value)||0;
+    inp.value = v>0 ? Math.round(v*(oldR/newR)) : '';
+  });
+  cur = c;
+  $('curSym').textContent = C[c].s;
+  $('curSym2').textContent = C[c].s;
+  updateRate();
+  document.querySelectorAll('.cur-btn').forEach(b => b.classList.toggle('active', b.dataset.cur===c));
+  localStorage.setItem('tcCur', c);
+  at()==='simple' ? calc1() : calc2();
+}
+
+function ub(id, isC, pct) {
+  document.querySelectorAll('#'+id+' .tip-btn').forEach(b => {
+    if(b.dataset.tip==='custom') b.classList.toggle('active', isC);
+    else b.classList.toggle('active', !isC && parseFloat(b.dataset.tip)===pct);
+  });
+}
+
+function up() {
+  document.querySelectorAll('.pamount').forEach(i => i.addEventListener('input', calc2));
+  document.querySelectorAll('.pname').forEach(i => i.addEventListener('input', calc2));
+  document.querySelectorAll('.remove-btn').forEach(btn => btn.addEventListener('click', function() {
+    if(document.querySelectorAll('#personsList .person-item').length<=1) return;
+    this.parentElement.remove(); calc2();
+  }));
+}
+
+function ah() {
+  const pv = $('perVal');
+  const t = pv.dataset.t||'0', ppl = pv.dataset.p||'1';
+  if(t==='0') return;
+  const pp = Math.round(parseInt(t)/parseInt(ppl))||'0';
+  const s = C[cur].s;
+  const list = $('historyList');
+  const empty = list.querySelector('li[style]');
+  if(empty) empty.remove();
+  const li = document.createElement('li');
+  li.className = 'history-item';
+  li.innerHTML = '<span class="hi-desc">'+t+' '+s+' → '+ppl+' '+(cl==='ru'?'чел.':cl==='uz'?'kishi':'ppl')+'</span><span class="hi-value">'+pp+' '+s+'</span>';
+  list.prepend(li);
+  while(list.children.length>5) list.lastChild.remove();
+  const items = [];
+  list.querySelectorAll('.history-item').forEach(el => {
+    const d = el.querySelector('.hi-desc'), v = el.querySelector('.hi-value');
+    items.push({desc:d?d.textContent:'', value:v?v.textContent:''});
+  });
+  localStorage.setItem('tcHistory', JSON.stringify(items));
+}
+
+let ht;
+function sh() { clearTimeout(ht); ht = setTimeout(ah, 800); }
+
+function lh() {
+  const raw = localStorage.getItem('tcHistory');
+  if(!raw) return;
+  try {
+    const items = JSON.parse(raw);
+    const list = $('historyList');
+    const empty = list.querySelector('li[style]');
+    if(empty) empty.remove();
+    items.forEach(item => {
+      const li = document.createElement('li');
+      li.className = 'history-item';
+      li.innerHTML = '<span class="hi-desc">'+item.desc+'</span><span class="hi-value">'+item.value+'</span>';
+      list.appendChild(li);
+    });
+  } catch(e) {}
+}
+
+function st(m) {
+  if(m==='light') { document.body.classList.add('light'); $('themeBtn').textContent='☀️'; }
+  else { document.body.classList.remove('light'); $('themeBtn').textContent='🌙'; }
+  localStorage.setItem('tcTheme', m);
+}
+
+// === СОБЫТИЯ ===
+document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', function() {
+  document.querySelectorAll('.tab-btn').forEach(x => x.classList.remove('active'));
+  this.classList.add('active');
+  const t = this.dataset.tab;
+  document.querySelectorAll('.tab-content').forEach(x => x.classList.remove('active'));
+  $(t==='simple'?'tab-simple':'tab-names').classList.add('active');
+  $('resultsBox').style.display = t==='simple'?'grid':'none';
+  t==='simple'?calc1():calc2();
+}));
+
+document.querySelectorAll('.lang-btn').forEach(b => b.addEventListener('click', function() {
+  document.querySelectorAll('.lang-btn').forEach(x => x.classList.remove('active'));
+  this.classList.add('active');
+  tr(this.dataset.lang);
+  at()==='simple'?calc1():calc2();
+}));
+
+document.querySelectorAll('.cur-btn').forEach(b => b.addEventListener('click', () => switchCur(b.dataset.cur)));
+
+document.querySelectorAll('#tipBtns1 .tip-btn').forEach(b => b.addEventListener('click', function() {
+  const v = this.dataset.tip;
+  if(v==='custom') {
+    c1=true; $('custom1').classList.add('show'); $('badge1').style.display='inline';
+    $('badge1').textContent = L[cl].cbad;
+    const cv = parseFloat($('custom1').value);
+    if(!isNaN(cv)&&cv>=0) t1=cv;
+  } else {
+    c1=false; t1=parseFloat(v);
+    $('custom1').classList.remove('show'); $('badge1').style.display='none';
+  }
+  ub('tipBtns1', c1, t1); calc1();
+}));
+$('custom1').addEventListener('input', () => { if(c1) { const v=parseFloat($('custom1').value); t1=(!isNaN(v)&&v>=0)?v:0; calc1(); } });
+
+document.querySelectorAll('#tipBtns2 .tip-btn').forEach(b => b.addEventListener('click', function() {
+  const v = this.dataset.tip;
+  if(v==='custom') {
+    c2=true; $('custom2').classList.add('show'); $('badge2').style.display='inline';
+    $('badge2').textContent = L[cl].cbad;
+    const cv = parseFloat($('custom2').value);
+    if(!isNaN(cv)&&cv>=0) t2p=cv;
+  } else {
+    c2=false; t2p=parseFloat(v);
+    $('custom2').classList.remove('show'); $('badge2').style.display='none';
+  }
+  ub('tipBtns2', c2, t2p); calc2();
+}));
+$('custom2').addEventListener('input', () => { if(c2) { const v=parseFloat($('custom2').value); t2p=(!isNaN(v)&&v>=0)?v:0; calc2(); } });
+
+$('serv1').addEventListener('change', function() { $('servPct1').style.display=this.checked?'inline-block':'none'; calc1(); });
+$('servPct1').addEventListener('input', calc1);
+$('round1').addEventListener('change', calc1);
+$('bill').addEventListener('input', calc1);
+$('people').addEventListener('input', function() { const v=parseInt(this.value); if(isNaN(v)||v<1) this.value=1; calc1(); });
+
+$('serv2').addEventListener('change', function() { $('servPct2').style.display=this.checked?'inline-block':'none'; calc2(); });
+$('servPct2').addEventListener('input', calc2);
+$('round2').addEventListener('change', calc2);
+$('bill2').addEventListener('input', calc2);
+
+up();
+
+$('addPerson').addEventListener('click', () => {
+  const div = document.createElement('div');
+  div.className = 'person-item';
+  div.innerHTML = '<input type="text" class="pname" placeholder="'+L[cl].pn+'"><input type="number" class="pamount" placeholder="'+L[cl].pa+'" step="any"><button class="remove-btn">✕</button>';
+  $('personsList').appendChild(div);
+  up(); calc2();
+});
+
+$('resetBtn').addEventListener('click', () => {
+  $('bill').value=''; $('people').value='1'; t1=10; c1=false;
+  $('custom1').value=''; $('custom1').classList.remove('show'); $('badge1').style.display='none';
+  $('serv1').checked=false; $('servPct1').style.display='none'; $('servPct1').value='10'; $('round1').checked=false;
+  $('bill2').value=''; t2p=10; c2=false;
+  $('custom2').value=''; $('custom2').classList.remove('show'); $('badge2').style.display='none';
+  $('serv2').checked=false; $('servPct2').style.display='none'; $('servPct2').value='10'; $('round2').checked=false;
+  $('personsList').innerHTML = '<div class="person-item"><input type="text" class="pname" placeholder="'+L[cl].pn+'"><input type="number" class="pamount" placeholder="'+L[cl].pa+'" step="any"><button class="remove-btn">✕</button></div><div class="person-item"><input type="text" class="pname" placeholder="'+L[cl].pn+'"><input type="number" class="pamount" placeholder="'+L[cl].pa+'" step="any"><button class="remove-btn">✕</button></div>';
+  up(); $('personSummary').style.display='none'; $('receiptBox').style.display='none';
+  ub('tipBtns1', false, 10); ub('tipBtns2', false, 10);
+  at()==='simple'?calc1():calc2(); ah();
+});
+
+$('shareBtn').addEventListener('click', () => {
+  const pv = $('perVal');
+  const t = pv.dataset.t||'0', ppl = pv.dataset.p||'1';
+  const pp = Math.round(parseInt(t)/parseInt(ppl))||'0';
+  const txt = L[cl].tot+': '+t+' '+C[cur].s+'\n'+ppl+' '+(cl==='ru'?'чел.':cl==='uz'?'kishi':'ppl')+'\n'+L[cl].pp+': '+pp+' '+C[cur].s;
+  navigator.clipboard.writeText(txt).then(() => {
+    $('shareBtn').textContent = L[cl].cpd; $('shareBtn').classList.add('copied');
+    setTimeout(() => { $('shareBtn').textContent = L[cl].sh; $('shareBtn').classList.remove('copied'); }, 2000);
+  }).catch(() => alert(txt));
+});
+
+$('receiptBtn').addEventListener('click', receipt);
+$('voiceBtn').addEventListener('click', speak);
+$('bill').addEventListener('input', sh);
+$('bill2').addEventListener('input', sh);
+$('people').addEventListener('input', sh);
+
+$('themeBtn').addEventListener('click', () => {
+  st(document.body.classList.contains('light')?'dark':'light');
+});
+
+// === ИНИЦИАЛИЗАЦИЯ ===
+(function() {
+  const theme = localStorage.getItem('tcTheme')||'dark'; st(theme);
+  const lang = localStorage.getItem('tcLang')||'ru'; cl=lang;
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang===lang));
+  tr(lang);
+  const savedCur = localStorage.getItem('tcCur')||'UZS'; switchCur(savedCur);
+  lh(); calc1();
+})();
+</script>
+</body>
+</html>
